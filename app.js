@@ -1,5 +1,9 @@
-const feedUrlInput = document.getElementById('feed-url-input');
-const loadFeedButton = document.getElementById('load-feed-button');
+// 固定的 RSS 地址，请根据实际情况修改
+const fixedRssFeedUrls = {
+  g1: ['https://onojyun.com/feed/'],
+  g2: ['https://www.decohack.com/feed']
+};
+
 const rssContainer = document.getElementById('rss-container');
 const loadingIndicator = document.getElementById('loading');
 const errorDisplay = document.getElementById('error');
@@ -9,13 +13,21 @@ const modalContent = document.getElementById("article-content");
 const modalDate = document.getElementById("article-date");
 const closeBtn = document.querySelector(".close");
 
-loadFeedButton.addEventListener('click', () => {
-  const rssFeedUrl = feedUrlInput.value.trim();
-  if (rssFeedUrl) {
-    loadRSSFeed(rssFeedUrl);
-  } else {
-    alert('Please enter an RSS feed URL.');
+// 页面加载时直接加载固定的 RSS 地址
+window.addEventListener('load', async () => {
+  let allItems = [];
+  for (const group in fixedRssFeedUrls) {
+    for (const url of fixedRssFeedUrls[group]) {
+      try {
+        const items = await parseRSS(url);
+        allItems = allItems.concat(items);
+      } catch (error) {
+        displayError(error.message);
+      }
+    }
   }
+  allItems.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
+  displayRSSItems(allItems);
 });
 
 // 采用现代async/await语法替代Promise链
@@ -48,7 +60,8 @@ async function parseRSS(url) {
 
 function displayRSSItems(items) {
   loadingIndicator.textContent = '';
-  rssContainer.innerHTML = '';
+  // 删除清空容器的代码
+  // rssContainer.innerHTML = '';
 
   items.forEach(item => {
     const rssItemDiv = document.createElement('div');
@@ -62,6 +75,8 @@ function displayRSSItems(items) {
     if (imgMatch?.[1]) {
       const img = document.createElement('img');
       img.src = imgMatch[1];
+      img.classList.add('previewable-image');
+      img.addEventListener('click', () => openImagePreview(imgMatch[1]));
       rssItemDiv.appendChild(img);
     }
 
@@ -77,6 +92,13 @@ function displayRSSItems(items) {
     rssItemDiv.addEventListener('click', () => openArticle(item));
     rssContainer.appendChild(rssItemDiv);
   });
+}
+
+function openImagePreview(imgSrc) {
+  const imageModal = document.getElementById('imageModal');
+  const modalImage = document.getElementById('modalImage');
+  modalImage.src = imgSrc;
+  imageModal.style.display = 'block';
 }
 
 function displayError(message) {
